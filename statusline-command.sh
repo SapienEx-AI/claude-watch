@@ -3,6 +3,7 @@ input=$(cat)
 
 # --- model ---
 model=$(echo "$input" | jq -r '.model.display_name // ""')
+model=$(echo "$model" | sed 's/ context)/)/g')
 
 # --- folder ---
 dir=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // ""')
@@ -16,14 +17,10 @@ fi
 
 # --- usage stats (5h / 7d) from cache ---
 CACHE_FILE="/tmp/.claude_usage_cache"
-five_h=""
-seven_d=""
 five_h_reset=""
 seven_d_reset=""
 
 if [ -f "$CACHE_FILE" ]; then
-  five_h=$(sed -n '1p' "$CACHE_FILE")
-  seven_d=$(sed -n '2p' "$CACHE_FILE")
   five_h_reset=$(sed -n '3p' "$CACHE_FILE")
   seven_d_reset=$(sed -n '4p' "$CACHE_FILE")
 else
@@ -69,7 +66,7 @@ fi
 # --- assemble output ---
 SEP="\033[90m • \033[0m"
 
-# line 1: model | folder • branch
+# model | folder • branch | 5h: Xh Xm • 7d: Xd Xh | ctx X% (Xk/Xk)
 printf "\033[38;5;208m\033[1m%s\033[22m\033[0m" "$model"
 printf "\033[90m | \033[0m"
 printf "\033[1m\033[38;2;76;208;222m%s\033[22m\033[0m" "$dir_name"
@@ -78,21 +75,16 @@ if [ -n "$branch" ]; then
   printf "\033[1m\033[38;2;192;103;222m%s\033[22m\033[0m" "$branch"
 fi
 
-# line 2: usage | ctx
-printf "\n"
-if [ -n "$five_h" ]; then
-  printf "\033[38;2;156;162;175m5h %s%%\033[0m" "$five_h"
-  if [ -n "$five_h_reset" ]; then
-    delta=$(compute_delta "$five_h_reset")
-    [ -n "$delta" ] && printf " \033[2m\033[38;2;156;162;175m(%s)\033[0m" "$delta"
-  fi
+printf "\033[90m | \033[0m"
+if [ -n "$five_h_reset" ]; then
+  delta=$(compute_delta "$five_h_reset")
+  [ -n "$delta" ] && printf "\033[38;2;156;162;175m5h: %s\033[0m" "$delta"
 fi
-if [ -n "$seven_d" ]; then
-  [ -n "$five_h" ] && printf "%b" "$SEP"
-  printf "\033[38;2;156;162;175m7d %s%%\033[0m" "$seven_d"
-  if [ -n "$seven_d_reset" ]; then
-    delta=$(compute_delta "$seven_d_reset")
-    [ -n "$delta" ] && printf " \033[2m\033[38;2;156;162;175m(%s)\033[0m" "$delta"
+if [ -n "$seven_d_reset" ]; then
+  delta=$(compute_delta "$seven_d_reset")
+  if [ -n "$delta" ]; then
+    [ -n "$five_h_reset" ] && printf "%b" "$SEP"
+    printf "\033[38;2;156;162;175m7d: %s\033[0m" "$delta"
   fi
 fi
 if [ -n "$ctx_str" ]; then
