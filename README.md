@@ -28,10 +28,26 @@ bash ~/.claude/fetch-usage.sh
 
 The usage cache will otherwise populate automatically on the next tool call or Claude response.
 
+## What it shows
+
+Everything on a single line:
+
+```
+Opus 4.6 (1M) | my-project • main | 5h: 3h 12m • 7d: 4d 22h | ctx 45% (430k/1000k)
+```
+
+| Segment | Description |
+|---------|-------------|
+| Model | Active model name (shortened, e.g. "Opus 4.6 (1M)") |
+| Folder | Current working directory basename |
+| Branch | Git branch (if in a repo) |
+| 5h / 7d | Time remaining until rate limit resets |
+| ctx | Context window usage (percentage + token counts) |
+
 ## How it works
 
-- **`statusline-command.sh`** — reads the JSON piped by Claude Code and renders two lines: model/folder/branch, then usage stats and context window.
-- **`fetch-usage.sh`** — reads the OAuth token from `~/.claude/.credentials.json`, caches it in `/tmp/.claude_token_cache` for 15 minutes, hits the `/oauth/usage` endpoint (3s timeout), and writes results to `/tmp/.claude_usage_cache`. On failure the stale cache is preserved.
+- **`statusline-command.sh`** — reads the JSON piped by Claude Code and renders a single-line status bar with model, folder, branch, rate limit reset countdowns, and context window usage.
+- **`fetch-usage.sh`** — reads the OAuth token from the macOS keychain, caches it in `/tmp/.claude_token_cache` for 15 minutes, hits the `/oauth/usage` endpoint (3s timeout), and writes results to `/tmp/.claude_usage_cache`. On failure the stale cache is preserved.
 - **`settings.json`** — wires up the statusline command and triggers `fetch-usage.sh` in the background on `PreToolUse` and `Stop` hooks.
 
 ## Dependencies
